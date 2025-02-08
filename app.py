@@ -14,6 +14,10 @@ from src.prompt import *
 from langchain_groq import ChatGroq
 
 from langchain_core.documents import Document
+import warnings
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+
+
 
 
 app=Flask(__name__)
@@ -24,16 +28,16 @@ os.environ["GROQ_API_KEY"]=os.getenv("CHATGROQ_API_KEY")
 
 
 embedding=download_hugging_face_embeddings()
-filepath=r"C:\Users\Satyajit Samal\OneDrive\Desktop\MedicalChatbot\Medical-Chatbot\data"
+# filepath=r"C:\Users\Satyajit Samal\OneDrive\Desktop\MedicalChatbot\Medical-Chatbot\data"
 # initialize the pinecone and get the index
 
 index="medchatbot3"
 vector_store=PineconeVectorStore(index=index,embedding=embedding)
-text_chunks=get_chunks(filepath)
+
 
 
 doc_search=vector_store.from_existing_index(index,embedding=embedding)
-retriever=doc_search.as_retriever(kwargs={"k":5})
+retriever=doc_search.as_retriever(search_type="similarity",search_kwargs={"k":4})
 
 prompt=ChatPromptTemplate.from_messages(
     [("system",prompt_template),
@@ -47,14 +51,14 @@ rag_chain=create_retrieval_chain(retriever,document_chain)
 def home():
     return render_template("index.html")
 
-@app.route("/get",methods=["GET","POST"])
+@app.route("/get", methods=["GET", "POST"])
 def chat():
-    msg=request.form["msg"]
-    input=msg
+    msg = request.form["msg"]
+    input = msg
     print(input)
-    response=rag_chain.invoke({"input":input})
-    print(f"Response: {response['context']}")
-    return str(response)
+    response = rag_chain.invoke({"input": msg})
+    print("Response : ", response["answer"])
+    return str(response["answer"])
 
 
 if __name__ == "__main__":
